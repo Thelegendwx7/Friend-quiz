@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>اختبار الأصدقاء</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:#f8fafc;min-height:100vh}
+.app{max-width:720px;margin:auto;padding:22px 16px 50px}
+h1{margin:8px 0 4px;font-size:30px}.sub{color:#94a3b8;margin:0 0 22px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:18px;margin-bottom:16px;box-shadow:0 8px 25px #0003}
+label{display:block;margin:12px 0 7px;font-weight:bold}
+input,textarea,button{font:inherit}
+input,textarea{width:100%;background:#0f172a;color:#fff;border:1px solid #475569;border-radius:12px;padding:12px;outline:none}
+textarea{min-height:80px;resize:vertical}
+button{border:0;border-radius:12px;padding:12px 16px;cursor:pointer;font-weight:bold}
+.primary{background:#38bdf8;color:#082f49}.secondary{background:#334155;color:#fff}.danger{background:#7f1d1d;color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}.hidden{display:none}
+.option{display:block;width:100%;text-align:right;background:#0f172a;color:#fff;border:1px solid #475569;margin:9px 0}
+.option:hover{border-color:#38bdf8}
+.correct{border-color:#22c55e!important;background:#14532d!important}
+.wrong{border-color:#ef4444!important;background:#450a0a!important}
+.small{font-size:13px;color:#94a3b8}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#334155;color:#cbd5e1;font-size:12px}
+#questions .card{margin-bottom:10px}.qtitle{font-weight:bold;margin-bottom:8px}
+.progress{display:flex;justify-content:space-between;align-items:center;background:#0f172a;border-radius:12px;padding:10px 12px;margin:12px 0;color:#cbd5e1}
+.result{text-align:center;padding:18px;background:#0f172a;border-radius:16px;margin-top:16px}
+.result .big{font-size:32px;font-weight:bold;margin:8px 0}
+
+.preset-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px}
+.preset{background:#334155;color:#fff;text-align:right;padding:11px;border-radius:12px;border:1px solid #475569}
+.preset:hover{border-color:#38bdf8}
+.preset-category{margin-top:16px;margin-bottom:6px;color:#7dd3fc;font-weight:bold}
+.name-box{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:14px;margin-bottom:14px}
+.name-box input{margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🎯 اختبار الأصدقاء</h1>
+  <p class="sub">اصنع اختبارك بطريقتك، ثم شاركه مع أصدقائك.</p>
+
+  <div id="home" class="card">
+    <div class="row">
+      <button class="primary" onclick="show('builder')">إنشاء اختبار</button>
+      <button class="secondary" onclick="show('player')">تجربة الاختبار</button>
+    </div>
+  </div>
+
+  <section id="builder" class="hidden">
+    <div class="card">
+      <span class="pill">الخطوة 1</span>
+      <label>اسم الاختبار</label>
+      <input id="quizTitle" placeholder="مثلاً: مين بيعرفني أكتر؟">
+      <label>اسم صاحب الاختبار</label>
+      <input id="creator" placeholder="اكتب اسمك">
+      <p id="counter" class="small">الأسئلة: 0 / 20 — الحد الأدنى 10</p>
+    </div>
+
+    <div class="card">
+      <span class="pill">أسئلة جاهزة</span>
+      <p class="small">اختار سؤال يعجبك، وعدّل عليه براحتك. وفيك دائماً تضيف سؤال من عندك.</p>
+      <div id="presetQuestions"></div>
+    </div>
+
+    <div id="questions"></div>
+
+    <div class="card">
+      <button id="addBtn" class="primary" onclick="addQuestion()">✏️ إضافة سؤال من عندي</button>
+      <button class="secondary" onclick="saveQuiz()">حفظ الاختبار</button>
+      <button class="primary" onclick="shareQuiz()">📤 مشاركة الاختبار</button>
+      <button class="secondary" onclick="show('home')">رجوع</button>
+      <p id="shareStatus" class="small"></p>
+<p class="small">لازم يكون الاختبار بين 10 و20 سؤال. اكتب السؤال والجواب الصحيح، والبرنامج يحاول اختيار خيارات خاطئة من نفس موضوع السؤال، ثم يلخبطها.</p>
+    </div>
+  </section>
+
+  <section id="player" class="hidden">
+    <div class="card">
+      <span class="pill">وضع اللعب</span>
+      <h2 id="playTitle">اختبار الأصدقاء</h2>
+      <p id="playCreator" class="small"></p>
+      <div id="playerNameBox" class="name-box">
+        <label>👤 اكتب اسمك قبل ما تبدأ</label>
+        <input id="playerName" placeholder="مثلاً: أحمد" maxlength="40">
+        <button class="primary" style="margin-top:10px;width:100%" onclick="startQuiz()">🚀 ابدأ الاختبار</button>
+      </div>
+      <div id="playArea" class="hidden"></div>
+      <button class="secondary" onclick="show('home')">رجوع</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const MIN_QUESTIONS=10;
+const MAX_QUESTIONS=20;
+
+const questionPresets = {
+  "⭐ عني": [
+    "شو أكتر أكلة بحبها؟",
+    "شو لوني المفضل؟",
+    "شو أكتر شي بصرف عليه مصاري؟",
+    "شو أكتر لعبة بحبها؟",
+    "شو أكتر مكان بحب أروح عليه؟"
+  ],
+  "🎬 ترفيه": [
+    "شو الأنمي المفضل عندي؟",
+    "شو نوع الأفلام اللي بحبها أكتر؟",
+    "شو أكتر لعبة بلعبها؟",
+    "مين الشخصية المفضلة عندي؟"
+  ],
+  "🍔 أكل ومشروبات": [
+    "شو أكتر أكلة بطلبها؟",
+    "شو مشروبي المفضل؟",
+    "شو الأكلة اللي ما بحبها؟",
+    "شو المطعم اللي بفضله؟"
+  ],
+  "🎯 شخصية وعادات": [
+    "شو أكتر شي بعمله بوقت فراغي؟",
+    "شو الشي اللي بعصبني بسرعة؟",
+    "شو أكتر عادة عندي؟",
+    "شو الشي اللي مستحيل أستغني عنه؟"
+  ]
+};
+
+const answerPools = {
+  food: ["بيتزا","شاورما","برغر","كبسة","مكرونة","رز","دجاج","سمك","فلافل","مناقيش"],
+  spending: ["ألعاب","ملابس","أكل","مواصلات","إلكترونيات","سفر","هدايا","دراسة","رياضة","ترفيه"],
+  sport: ["كرة القدم","كرة السلة","السباحة","الجري","التنس","كرة الطائرة","ركوب الدراجة","رفع الأثقال"],
+  entertainment: ["ألعاب","أفلام","أنمي","مسلسلات","يوتيوب","موسيقى","قراءة","كرة القدم"],
+  travel: ["تركيا","اليابان","إسبانيا","إيطاليا","فرنسا","ألمانيا","مصر","السعودية"],
+  drink: ["قهوة","شاي","عصير","ماء","مشروبات غازية","حليب","لَبَن"],
+  season: ["الصيف","الشتاء","الربيع","الخريف"],
+  color: ["الأحمر","الأزرق","الأخضر","الأسود","الأبيض","البنفسجي","الأصفر"],
+  study: ["الرياضيات","البرمجة","الفيزياء","الكيمياء","اللغة العربية","اللغة الإنجليزية","التاريخ","الأحياء"],
+  general: ["ألعاب","أكل","ملابس","سفر","رياضة","أفلام","أنمي","موسيقى","نوم","دراسة"]
+};
+
+const categoryKeywords = {
+  food: ["أكلة","اكل","أكل","طعام","مطعم","وجبة","طبخة"],
+  spending: ["صرف","مصاري","مال","فلوس","أشتري","اشتري","شراء","إنفاق","ميزانية","مصروف"],
+  sport: ["رياضة","رياضتي","فريق","لاعب","كرة","مباراة","تمرين","لعب"],
+  entertainment: ["فيلم","أفلام","انمي","أنمي","مسلسل","يوتيوب","لعبة","ألعاب","موسيقى"],
+  travel: ["سفر","بلد","دولة","مدينة","رحلة","سياحة"],
+  drink: ["مشروب","أشرب","اشرب","شراب","قهوة","شاي"],
+  season: ["فصل","صيف","شتاء","ربيع","خريف"],
+  color: ["لون","ألوان"],
+  study: ["مادة","دراسة","مدرسة","جامعة","تخصص","برمجة","رياضيات"]
+};
+
+let quiz={title:"",creator:"",questions:[]};
+
+function renderPresets(){
+  const box=document.getElementById("presetQuestions");
+  if(!box) return;
+  box.innerHTML="";
+  for(const [category,questions] of Object.entries(questionPresets)){
+    const title=document.createElement("div");
+    title.className="preset-category";
+    title.textContent=category;
+    box.appendChild(title);
+
+    const grid=document.createElement("div");
+    grid.className="preset-grid";
+    questions.forEach(q=>{
+      const b=document.createElement("button");
+      b.className="preset";
+      b.textContent="+ "+q;
+      b.onclick=()=>addQuestion({q,a:"",extras:""});
+      grid.appendChild(b);
+    });
+    box.appendChild(grid);
+  }
+}
+
+function show(id){
+  ["home","builder","player"].forEach(x=>
+    document.getElementById(x).classList.toggle("hidden",x!==id)
+  );
+  if(id==="builder") {
+    renderPresets();
+    if(!document.querySelector("#questions .card")) addQuestion();
+  }
+  if(id==="player") preparePlayer();
+}
+
+function addQuestion(data=null){
+  const count=document.querySelectorAll("#questions .card").length;
+
+  if(count>=MAX_QUESTIONS && data===null){
+    alert("وصلت للحد الأقصى: 20 سؤال.");
+    return;
+  }
+
+  const n=count+1;
+  const d=document.createElement("div");
+  d.className="card";
+
+  d.innerHTML=`
+    <span class="pill">السؤال ${n}</span>
+    <label>السؤال</label>
+    <textarea class="question" placeholder="مثلاً: شو أكتر أكلة بحبها؟">${escapeHtml(data?.q||"")}</textarea>
+
+    <label>الجواب الصحيح ⭐</label>
+    <input class="answer" placeholder="مثلاً: بيتزا" value="${escapeAttr(data?.a||"")}">
+
+    <label>أجوبة مزيفة (اختياري)</label>
+    <input class="extras" placeholder="اكتب جواباً أو أكثر بفواصل، والنظام يكمل الباقي تلقائياً" value="${escapeAttr(data?.extras||"")}">
+    <div class="row" style="margin-top:8px">
+      <button class="secondary" type="button" onclick="suggestExtras(this.parentElement)">🤖 اقتراح أجوبة</button>
+      <button class="danger" type="button" onclick="this.parentElement.parentElement.remove();renumber()">حذف السؤال</button>
+    </div>
+  `;
+
+  document.getElementById("questions").appendChild(d);
+  renumber();
+}
+
+function suggestExtras(card){
+  const question=card.querySelector(".question").value.trim();
+  const correct=card.querySelector(".answer").value.trim();
+  if(!question || !correct){
+    alert("اكتب السؤال والجواب الصحيح أولاً، وبعدها بخلي النظام يقترح الأجوبة 😄");
+    return;
+  }
+
+  let current=card.querySelector(".extras").value
+    .split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+
+  current=current.filter(x=>x!==correct);
+  const pool=answerPools[detectCategory(question,correct)] || answerPools.general;
+
+  for(const x of pool){
+    if(current.length>=3) break;
+    if(x!==correct && !current.includes(x)) current.push(x);
+  }
+  for(const x of answerPools.general){
+    if(current.length>=3) break;
+    if(x!==correct && !current.includes(x)) current.push(x);
+  }
+
+  card.querySelector(".extras").value=current.slice(0,3).join("، ");
+}
+
+function renumber(){
+  document.querySelectorAll("#questions .card").forEach((card,i)=>{
+    card.querySelector(".pill").textContent="السؤال "+(i+1);
+  });
+
+  const count=document.querySelectorAll("#questions .card").length;
+  document.getElementById("counter").textContent=
+    `الأسئلة: ${count} / ${MAX_QUESTIONS} — الحد الأدنى ${MIN_QUESTIONS}`;
+
+  document.getElementById("addBtn").disabled=count>=MAX_QUESTIONS;
+  document.getElementById("addBtn").style.opacity=count>=MAX_QUESTIONS?".5":"1";
+}
+
+function saveQuiz(silent=false){
+  const cards=[...document.querySelectorAll("#questions .card")];
+
+  if(cards.length<MIN_QUESTIONS){
+    if(!silent) alert(`لازم تضيف ${MIN_QUESTIONS} أسئلة على الأقل قبل الحفظ.`);
+    return false;
+  }
+
+  if(cards.length>MAX_QUESTIONS){
+    if(!silent) alert(`الحد الأقصى هو ${MAX_QUESTIONS} سؤال.`);
+    return false;
+  }
+
+  const qs=cards.map(c=>({
+    q:c.querySelector(".question").value.trim(),
+    a:c.querySelector(".answer").value.trim(),
+    extras:c.querySelector(".extras").value.trim()
+  }));
+
+  if(qs.some(x=>!x.q||!x.a)){
+    if(!silent) alert("تأكد أن كل سؤال فيه سؤال مكتوب وجواب صحيح.");
+    return false;
+  }
+
+  quiz={
+    title:document.getElementById("quizTitle").value.trim()||"اختبار الأصدقاء",
+    creator:document.getElementById("creator").value.trim(),
+    questions:qs
+  };
+
+  localStorage.setItem("friendQuiz",JSON.stringify(quiz));
+  if(!silent) alert("تم حفظ الاختبار! صار جاهز للتجربة.");
+  return true;
+}
+
+function load(){
+  const saved=localStorage.getItem("friendQuiz");
+
+  if(saved){
+    try{
+      quiz=JSON.parse(saved);
+      quiz.questions=(quiz.questions||[]).slice(0,MAX_QUESTIONS);
+
+      document.getElementById("quizTitle").value=quiz.title||"";
+      document.getElementById("creator").value=quiz.creator||"";
+      document.getElementById("questions").innerHTML="";
+
+      quiz.questions.forEach(q=>addQuestion(q));
+      renumber();
+    }catch(e){
+      quiz={title:"",creator:"",questions:[]};
+    }
+  }
+}
+
+function detectCategory(question, correct) {
+  const text = (question + " " + correct).toLowerCase();
+
+  for (const [category, words] of Object.entries(categoryKeywords)) {
+    if (words.some(word => text.includes(word.toLowerCase()))) {
+      return category;
+    }
+  }
+
+  return "general";
+}
+
+function makeOptions(q){
+  let opts=q.extras
+    ? q.extras.split(/[،,]/).map(x=>x.trim()).filter(Boolean)
+    : [];
+
+  opts=opts.filter(x=>x!==q.a);
+  opts.push(q.a);
+
+  const category=detectCategory(q.q,q.a);
+  const pool=answerPools[category] || answerPools.general;
+
+  for(const x of pool){
+    if(opts.length>=4) break;
+    if(x!==q.a&&!opts.includes(x)) opts.push(x);
+  }
+
+  for(const x of answerPools.general){
+    if(opts.length>=4) break;
+    if(x!==q.a&&!opts.includes(x)) opts.push(x);
+  }
+
+  return opts.slice(0,4).sort(()=>Math.random()-.5);
+}
+
+function makeShareLink(){
+  const saved=localStorage.getItem("friendQuiz");
+  if(!saved) return null;
+
+  const encoded=encodeURIComponent(btoa(unescape(encodeURIComponent(saved))));
+  const base=window.location.href.split("#")[0];
+  return base + (base.includes("?") ? "&" : "?") + "quiz=" + encoded;
+}
+
+async function shareQuiz(){
+  const cards=[...document.querySelectorAll("#questions .card")];
+
+  if(cards.length<MIN_QUESTIONS){
+    alert(`لازم تضيف ${MIN_QUESTIONS} أسئلة على الأقل قبل مشاركة الاختبار.`);
+    return;
+  }
+
+  if(!saveQuiz(true)) return;
+
+  const link=makeShareLink();
+  if(!link) return;
+
+  const shareData={
+    title:quiz.title||"اختبار الأصدقاء",
+    text:"جرب اختبار الأصدقاء وشوف قديش بتعرفني 😄",
+    url:link
+  };
+
+  try{
+    if(navigator.share){
+      await navigator.share(shareData);
+      document.getElementById("shareStatus").textContent="تم فتح قائمة المشاركة.";
+    }else{
+      await navigator.clipboard.writeText(link);
+      document.getElementById("shareStatus").textContent="جهازك لا يدعم المشاركة المباشرة، فتم نسخ الرابط.";
+      alert("المشاركة المباشرة غير مدعومة على هذا الجهاز، وتم نسخ الرابط بدلًا منها.");
+    }
+  }catch(e){
+    if(e.name!=="AbortError"){
+      try{
+        await navigator.clipboard.writeText(link);
+        document.getElementById("shareStatus").textContent="تم نسخ الرابط كخيار احتياطي.";
+        alert("ما قدرت أفتح المشاركة، فتم نسخ الرابط بدلًا منها.");
+      }catch(err){
+        prompt("انسخ هذا الرابط وأرسله لرفقاتك:",link);
+      }
+    }
+  }
+}
+
+function loadSharedQuiz(){
+  if(!location.hash.startsWith("#quiz=")) return false;
+
+  try{
+    const encoded=decodeURIComponent(location.hash.slice(6));
+    const json=decodeURIComponent(escape(atob(encoded)));
+    quiz=JSON.parse(json);
+
+    if(!quiz.questions || quiz.questions.length<MIN_QUESTIONS){
+      throw new Error("invalid quiz");
+    }
+
+    localStorage.setItem("friendQuiz",JSON.stringify(quiz));
+    return true;
+  }catch(e){
+    alert("رابط الاختبار غير صالح أو ناقص.");
+    return false;
+  }
+}
+
+function preparePlayer(){
+  document.getElementById("playTitle").textContent=quiz.title||"اختبار الأصدقاء";
+  document.getElementById("playCreator").textContent=
+    quiz.creator?"من إعداد: "+quiz.creator:"";
+  document.getElementById("playerNameBox").classList.remove("hidden");
+  document.getElementById("playArea").classList.add("hidden");
+  document.getElementById("playArea").innerHTML="";
+  document.getElementById("playerName").value="";
+}
+
+function startQuiz(){
+  const name=document.getElementById("playerName").value.trim();
+  if(!name){
+    alert("اكتب اسمك أولاً 😄");
+    return;
+  }
+
+  if(quiz.questions.length<MIN_QUESTIONS){
+    alert(`الاختبار لازم يحتوي على ${MIN_QUESTIONS} أسئلة على الأقل.`);
+    return;
+  }
+
+  document.getElementById("playerNameBox").classList.add("hidden");
+  const area=document.getElementById("playArea");
+  area.classList.remove("hidden");
+  renderPlayer(name);
+}
+
+function renderPlayer(playerName){
+  const area=document.getElementById("playArea");
+  area.innerHTML="";
+
+  let answered=0;
+  let correct=0;
+  let finished=false;
+
+  quiz.questions.forEach((q,qi)=>{
+    const box=document.createElement("div");
+    box.className="card";
+
+    box.innerHTML=`
+      <div class="progress">
+        <span>السؤال ${qi+1} من ${quiz.questions.length}</span>
+        <span class="answered">أجبت: 0 / ${quiz.questions.length}</span>
+      </div>
+      <div class="qtitle">${qi+1}. ${escapeHtml(q.q)}</div>
+    `;
+
+    makeOptions(q).forEach(o=>{
+      const b=document.createElement("button");
+      b.className="option";
+      b.textContent=o;
+
+      b.onclick=()=>{
+        if(b.disabled||finished)return;
+
+        box.querySelectorAll("button").forEach(x=>x.disabled=true);
+        answered++;
+        if(o===q.a) correct++;
+
+        document.querySelectorAll(".answered").forEach(x=>{
+          x.textContent=`أجبت: ${answered} / ${quiz.questions.length}`;
+        });
+
+        if(answered===quiz.questions.length){
+          finished=true;
+          showResult(area,answered,correct,playerName);
+        }
+      };
+
+      box.appendChild(b);
+    });
+
+    area.appendChild(box);
+  });
+}
+
+function showResult(area,total,correct,playerName){
+  const percent=Math.round((correct/total)*100);
+
+  const result=document.createElement("div");
+  result.className="result";
+  const resultText=`نتيجة اختبار «${quiz.title||"اختبار الأصدقاء"}»\n👤 الاسم: ${playerName}\n🏆 النتيجة: ${correct}/${total}\n📊 النسبة: ${percent}%`;
+
+  result.innerHTML=`
+    <h2>🎉 خلص الاختبار!</h2>
+    <div class="big">${correct} / ${total}</div>
+    <p>إجابات صحيحة: <strong>${correct}</strong></p>
+    <p>عدد الأسئلة التي أجبت عنها: <strong>${total}</strong></p>
+    <p>النسبة المئوية: <strong>${percent}%</strong></p>
+    <p class="small">الاسم: ${escapeHtml(playerName)}</p>
+    <button class="primary" style="width:100%;margin-top:8px" onclick='shareResult(${JSON.stringify(resultText)})'>📤 إرسال النتيجة لصاحب الاختبار</button>
+  `;
+
+  area.appendChild(result);
+  window.lastQuizResult={playerName,correct,total,percent,title:quiz.title||"اختبار الأصدقاء"};
+  result.scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+async function shareResult(text){
+  try{
+    if(navigator.share){
+      await navigator.share({title:"نتيجة الاختبار",text});
+    }else if(navigator.clipboard){
+      await navigator.clipboard.writeText(text);
+      alert("تم نسخ النتيجة. ابعتها لصاحب الاختبار 👍");
+    }else{
+      prompt("انسخ النتيجة وأرسلها لصاحب الاختبار:",text);
+    }
+  }catch(e){
+    if(e.name!=="AbortError"){
+      try{
+        await navigator.clipboard.writeText(text);
+        alert("تم نسخ النتيجة كخيار احتياطي.");
+      }catch(err){
+        prompt("انسخ النتيجة وأرسلها لصاحب الاختبار:",text);
+      }
+    }
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+
+function escapeAttr(s){
+  return escapeHtml(s).replace(/`/g,"&#096;");
+}
+
+renderPresets();
+if(loadSharedQuiz()) show("player"); else load();
+</script>
+</body>
+</html>
